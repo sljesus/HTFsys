@@ -5,10 +5,10 @@ Basado en la experiencia y errores corregidos, esta es la configuración mínima
 ## Estructura de Archivos Esencial
 
 ```
-HTFadm/
+HTFsystem/
 ├── app/
 │   └── src/main/
-│       ├── java/com/htf/admin/
+│       ├── java/com/htf/system/
 │       │   ├── MainActivity.kt
 │       │   └── MyApplication.kt
 │       ├── res/
@@ -54,7 +54,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = 'HTFAdmin'
+rootProject.name = 'HTFsystem'
 include ':app'
 ```
 
@@ -75,11 +75,11 @@ plugins {
 }
 
 android {
-    namespace 'com.htf.admin'
+    namespace 'com.htf.system'
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.htf.admin"
+        applicationId "com.htf.system"
         minSdk 21
         targetSdk 34
         versionCode 1
@@ -143,7 +143,7 @@ zipStorePath=wrapper/dists
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:theme="@style/Theme.HTFAdmin"
+        android:theme="@style/Theme.HTFsystem"
         tools:targetApi="31">
         <activity
             android:name=".MainActivity"
@@ -159,11 +159,11 @@ zipStorePath=wrapper/dists
 
 ### 7. MainActivity.kt
 ```kotlin
-package com.htf.admin
+package com.htf.system
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import com.htf.admin.databinding.ActivityMainBinding
+import com.htf.system.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
 
@@ -180,7 +180,7 @@ class MainActivity : AppCompatActivity() {
 
 ### 8. MyApplication.kt
 ```kotlin
-package com.htf.admin
+package com.htf.system
 
 import android.app.Application
 

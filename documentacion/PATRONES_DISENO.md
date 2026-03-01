@@ -1,6 +1,43 @@
-# Patrones de Diseño Detallados - Proyecto HTF Admin
+# Patrones de Diseño Detallados - Proyecto HTFsystem
 
 Este documento contiene las descripciones detalladas de los patrones de diseño utilizados en el proyecto Android de gestión de sistemas HTF.
+
+## Modelos de Datos del Proyecto
+
+### Member (Miembro)
+```kotlin
+data class Member(
+    val id: Int, // id_miembro
+    val nombre: String, // nombres + " " + apellido_paterno + " " + apellido_materno
+    val email: String,
+    val telefono: String?,
+    val fechaRegistro: String
+)
+```
+
+### Assignment (Asignación Activa)
+```kotlin
+data class Assignment(
+    val id: Int, // id_asignacion
+    val idMiembro: Int,
+    val idProductoDigital: Int,
+    val fechaInicio: String,
+    val fechaFin: String,
+    val activa: Boolean,
+    val cancelada: Boolean
+)
+```
+
+### Fine (Recargo Cobrado)
+```kotlin
+data class Fine(
+    val id: Int, // id_recargo
+    val idMiembro: Int,
+    val monto: Double,
+    val pagada: Boolean,
+    val fechaCreacion: String // fecha_registro
+)
+```
 
 ## Singleton
 También llamado: Instancia única

@@ -54,8 +54,8 @@ Iniciar el desarrollo de una aplicación Android nativa para gestión de sistema
 
 ### Estructura del Proyecto
 ```
-htf-admin/
-├── app/src/main/java/com/htf/admin/
+htf-system/
+├── app/src/main/java/com/htf/system/
 │   ├── data/
 │   │   ├── models/           # Data classes
 │   │   ├── repository/       # Repositorios

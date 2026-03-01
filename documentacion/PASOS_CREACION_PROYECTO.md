@@ -1,13 +1,21 @@
-# 📋 Pasos Exactos para Crear Proyecto Android HTFsystem
+# 📋 Pasos Exactos para Crear Proyecto Android HTFsystem - Versión Sincronizada
 
 ## 🎯 Objetivo
-Crear una aplicación Android nativa funcional llamada **HTFsystem** siguiendo la documentación existente y evitando errores conocidos.
+Crear una aplicación Android nativa funcional llamada **HTFsystem** siguiendo la documentación sincronizada y evitando errores conocidos.
 
 ## 🛠️ Requisitos Previos
 - Windows 10/11
 - Scoop instalado (gestor de paquetes para Windows)
 - Android Studio (opcional, para desarrollo posterior)
 - Conexión a internet
+
+---
+
+## 📝 NOTA IMPORTANTE
+Este documento está sincronizado con:
+- **Nombre del proyecto:** HTFsystem
+- **Namespace:** com.htf.system
+- **Configuración Gradle:** 8.6 + AGP 8.2.2 + Kotlin 1.8.10
 
 ---
 
