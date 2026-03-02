@@ -25,3 +25,6 @@ local.properties
 Thumbs.db
 *.keystore
 *.jks
+.env
+.env.local
+.env.*
