@@ -16,6 +16,15 @@ interface SupabaseApiService {
         @Query("order") order: String = "id_asignacion.desc"
     ): Response<List<AssignmentDetailsResponse>>
 
+    // Buscar por nombre de miembro (búsqueda parcial, case-insensitive)
+    @GET("v_assignments_details")
+    suspend fun getAssignmentsByMemberName(
+        @Query("select") select: String = "*",
+        @Query("nombre_completo") nombreCompleto: String,
+        @Query("limit") limit: Int = 100,
+        @Query("order") order: String = "nombre_completo.asc,id_asignacion.desc"
+    ): Response<List<AssignmentDetailsResponse>>
+
     // Actualizar una asignación (fecha_inicio, fecha_fin, activa, cancelada)
     @PATCH("asignaciones_activas")
     suspend fun updateAssignment(

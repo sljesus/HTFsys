@@ -13,6 +13,16 @@
         android:orientation="vertical"
         android:padding="16dp">
 
+        <!-- Nombre del miembro -->
+        <TextView
+            android:id="@+id/textViewMemberName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Nombre del miembro"
+            android:textSize="14sp"
+            android:textColor="@color/secondary_text_color"
+            android:textStyle="bold" />
+
         <!-- Producto -->
         <TextView
             android:id="@+id/textViewProducto"
@@ -21,7 +31,8 @@
             android:text="Producto"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:textColor="@color/primary_color" />
+            android:textColor="@color/primary_color"
+            android:layout_marginTop="4dp" />
 
         <!-- Fechas -->
         <LinearLayout

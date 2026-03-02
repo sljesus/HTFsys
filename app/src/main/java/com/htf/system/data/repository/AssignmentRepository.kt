@@ -69,6 +69,53 @@ class AssignmentRepository {
     }
 
     /**
+     * Buscar asignaciones por nombre de miembro (búsqueda parcial, case-insensitive)
+     */
+    suspend fun getAssignmentsByMemberName(memberName: String): Result<List<Assignment>> = withContext(Dispatchers.IO) {
+        try {
+            Log.d("HTF_APP", "=== BUSCANDO SUPABASE POR NOMBRE: $memberName ===")
+
+            // Usar ilike para búsqueda parcial case-insensitive (Supabase usa * como comodín)
+            val response = apiService.getAssignmentsByMemberName(
+                nombreCompleto = "ilike.*${memberName}*"
+            )
+
+            if (response.isSuccessful) {
+                val supabaseAssignments = response.body() ?: emptyList()
+                Log.d("HTF_APP", "✅ OBTENIDOS ${supabaseAssignments.size} REGISTROS PARA '$memberName'")
+
+                // Convertir a formato de app
+                val result = supabaseAssignments.map { supabaseItem ->
+                    Assignment(
+                        idAsignacion = supabaseItem.id_asignacion.toString(),
+                        idMiembro = supabaseItem.id_miembro.toString(),
+                        platform = supabaseItem.platform ?: "N/A",
+                        nombreCompleto = supabaseItem.nombre_completo ?: "Miembro ${supabaseItem.id_miembro}",
+                        idProducto = supabaseItem.id_producto_digital.toString(),
+                        nombreProducto = supabaseItem.nombre_producto ?: "Producto ${supabaseItem.id_producto_digital}",
+                        fechaInicio = supabaseItem.fecha_inicio.toString(),
+                        fechaFin = supabaseItem.fecha_fin.toString(),
+                        activa = supabaseItem.activa,
+                        cancelada = supabaseItem.cancelada
+                    )
+                }
+
+                Log.d("HTF_APP", "✅ PROCESADOS ${result.size} ASIGNACIONES")
+                Result.success(result)
+            } else {
+                Log.e("HTF_APP", "❌ ERROR HTTP: ${response.code()} - ${response.message()}")
+                Log.e("HTF_APP", "❌ Response body: ${response.errorBody()?.string()}")
+                Result.failure(Exception("Error HTTP: ${response.code()} - ${response.message()}"))
+            }
+
+        } catch (e: Exception) {
+            Log.e("HTF_APP", "❌ ERROR EN SUPABASE: ${e.message}")
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Actualizar una asignación (fecha_inicio, fecha_fin, activa, cancelada)
      */
     suspend fun updateAssignment(

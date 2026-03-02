@@ -22,7 +22,9 @@ import java.util.*
 class MainActivity : AppCompatActivity() {
 
     private lateinit var editTextMemberId: EditText
+    private lateinit var editTextMemberName: EditText
     private lateinit var buttonSearch: Button
+    private lateinit var buttonSearchByName: Button
     private lateinit var listViewAssignments: ListView
     private lateinit var textViewEmpty: TextView
     private lateinit var textViewMemberName: TextView
@@ -39,13 +41,15 @@ class MainActivity : AppCompatActivity() {
 
         // Inicializar vistas
         editTextMemberId = findViewById(R.id.editTextMemberId)
+        editTextMemberName = findViewById(R.id.editTextMemberName)
         buttonSearch = findViewById(R.id.buttonSearch)
+        buttonSearchByName = findViewById(R.id.buttonSearchByName)
         listViewAssignments = findViewById(R.id.listViewAssignments)
         textViewEmpty = findViewById(R.id.textViewEmpty)
         textViewMemberName = findViewById(R.id.textViewMemberName)
 
         // Estado inicial
-        showEmptyState("Ingrese ID de miembro")
+        showEmptyState("Ingrese ID o nombre del miembro")
 
         // Configurar listeners de UI
         setupListeners()
@@ -55,15 +59,30 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupListeners() {
-        // Botón de búsqueda
+        // Botón de búsqueda por ID
         buttonSearch.setOnClickListener {
             searchMemberAssignments()
         }
 
-        // Acción del teclado (botón búsqueda)
+        // Acción del teclado (botón búsqueda por ID)
         editTextMemberId.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                 searchMemberAssignments()
+                true
+            } else {
+                false
+            }
+        }
+
+        // Botón de búsqueda por nombre
+        buttonSearchByName.setOnClickListener {
+            searchMemberByName()
+        }
+
+        // Acción del teclado (botón búsqueda por nombre)
+        editTextMemberName.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                searchMemberByName()
                 true
             } else {
                 false
@@ -171,6 +190,27 @@ class MainActivity : AppCompatActivity() {
         currentMemberId = memberId
     }
 
+    private fun searchMemberByName() {
+        val memberName = editTextMemberName.text.toString().trim()
+
+        // Validar que no esté vacío
+        if (memberName.isEmpty()) {
+            showEmptyState("Ingrese un nombre para buscar")
+            return
+        }
+
+        if (memberName.length < 2) {
+            showEmptyState("Ingrese al menos 2 caracteres")
+            return
+        }
+
+        // Ocultar teclado
+        hideKeyboard()
+
+        // Delegar al ViewModel
+        viewModel.searchAssignmentsByName(memberName)
+    }
+
     private fun showEmptyState(message: String) {
         textViewEmpty.text = message
         textViewEmpty.visibility = View.VISIBLE
@@ -181,7 +221,11 @@ class MainActivity : AppCompatActivity() {
     // Ocultar teclado virtual
     private fun hideKeyboard() {
         val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
-        imm.hideSoftInputFromWindow(editTextMemberId.windowToken, 0)
+        if (editTextMemberId.hasFocus()) {
+            imm.hideSoftInputFromWindow(editTextMemberId.windowToken, 0)
+        } else if (editTextMemberName.hasFocus()) {
+            imm.hideSoftInputFromWindow(editTextMemberName.windowToken, 0)
+        }
     }
 
     /**
@@ -316,6 +360,7 @@ class AssignmentListAdapter(
 
         val assignment = assignments[position]
 
+        view.findViewById<TextView>(R.id.textViewMemberName).text = assignment.nombreCompleto
         view.findViewById<TextView>(R.id.textViewProducto).text = assignment.nombreProducto
         view.findViewById<TextView>(R.id.textViewFechaInicio).text = assignment.fechaInicio
         view.findViewById<TextView>(R.id.textViewFechaFin).text = assignment.fechaFin

@@ -70,6 +70,38 @@ class AssignmentViewModel : ViewModel() {
     }
 
     /**
+     * Buscar asignaciones por nombre de miembro
+     */
+    fun searchAssignmentsByName(memberName: String) {
+        _isLoading.value = true
+        _message.value = ""
+
+        viewModelScope.launch {
+            repository.getAssignmentsByMemberName(memberName)
+                .onSuccess { assignmentsList ->
+                    _assignments.value = assignmentsList
+                    _memberName.value = if (assignmentsList.isNotEmpty()) {
+                        "${assignmentsList.size} resultado(s) para: $memberName"
+                    } else {
+                        null
+                    }
+                    _message.value = if (assignmentsList.isEmpty()) {
+                        "Sin resultados para: $memberName"
+                    } else {
+                        ""
+                    }
+                    _isLoading.value = false
+                }
+                .onFailure { exception ->
+                    _assignments.value = emptyList()
+                    _memberName.value = null
+                    _message.value = "Error: ${exception.message}"
+                    _isLoading.value = false
+                }
+        }
+    }
+
+    /**
      * Limpiar el estado
      */
     fun clear() {
