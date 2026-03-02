@@ -15,9 +15,11 @@ android {
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
-        // Exponer credenciales de Supabase al código
-        buildConfigField "String", "SUPABASE_URL", "\"https://ufnmqxyvrfionysjeiko.supabase.co\""
-        buildConfigField "String", "SUPABASE_ANON_KEY", "\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmbm1xeHl2cmZpb255c2plaWtvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyOTM0NDMsImV4cCI6MjA3NDg2OTQ0M30.pevhyNLyUXaxMHrk8LdwqOzojRbRISUaDxK3Xp-jt2o\""
+        // Credenciales de Supabase - Se leen desde local.properties (no subir a repo)
+        def supabaseUrl = project.hasProperty('SUPABASE_URL') ? project.property('SUPABASE_URL') : "https://ufnmqxyvrfionysjeiko.supabase.co"
+        def supabaseKey = project.hasProperty('SUPABASE_ANON_KEY') ? project.property('SUPABASE_ANON_KEY') : "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmbm1xeHl2cmZpb255c2plaWtvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyOTM0NDMsImV4cCI6MjA3NDg2OTQ0M30.pevhyNLyUXaxMHrk8LdwqOzojRbRISUaDxK3Xp-jt2o"
+        buildConfigField "String", "SUPABASE_URL", "\"$supabaseUrl\""
+        buildConfigField "String", "SUPABASE_ANON_KEY", "\"$supabaseKey\""
     }
 
     buildFeatures {
