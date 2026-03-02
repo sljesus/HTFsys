@@ -1,14 +1,18 @@
 package com.htf.system
 
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.*
-import kotlinx.coroutines.*
-import com.htf.system.data.repository.AssignmentRepository
+import androidx.activity.viewModels
+import androidx.appcompat.app.AppCompatActivity
+import com.htf.system.ui.viewmodel.AssignmentViewModel
 
+/**
+ * MainActivity implementa la Capa VIEW del patrón MVVM
+ * Solo maneja UI, toda la lógica de negocio está en AssignmentViewModel
+ */
 class MainActivity : AppCompatActivity() {
 
     private lateinit var editTextMemberId: EditText
@@ -17,7 +21,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var textViewEmpty: TextView
     private lateinit var textViewMemberName: TextView
 
-    private val repository = AssignmentRepository()
+    // ViewModel siguiendo patrón MVVM
+    private val viewModel: AssignmentViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,18 +38,80 @@ class MainActivity : AppCompatActivity() {
         // Estado inicial
         showEmptyState("Ingrese ID de miembro")
 
-        // Configurar botón de búsqueda
+        // Configurar listeners de UI
+        setupListeners()
+
+        // Observar cambios del ViewModel (patrón Observer)
+        observeViewModel()
+    }
+
+    private fun setupListeners() {
+        // Botón de búsqueda
         buttonSearch.setOnClickListener {
             searchMemberAssignments()
         }
 
-        // Configurar acción del teclado (botón búsqueda)
+        // Acción del teclado (botón búsqueda)
         editTextMemberId.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                 searchMemberAssignments()
                 true
             } else {
                 false
+            }
+        }
+    }
+
+    private fun observeViewModel() {
+        // Observar estado de carga
+        viewModel.isLoading.observe(this) { isLoading ->
+            buttonSearch.isEnabled = !isLoading
+            buttonSearch.text = if (isLoading) "..." else "Buscar"
+        }
+
+        // Observar nombre del miembro
+        viewModel.memberName.observe(this) { name ->
+            if (name != null) {
+                // Determinar plataforma
+                val platform = viewModel.assignments.value?.firstOrNull()?.platform ?: "N/A"
+                val platformEmoji = when (platform.uppercase()) {
+                    "ANDROID" -> "📱 Android"
+                    "IOS", "IPHONE" -> "📱 iOS"
+                    else -> "📱 $platform"
+                }
+                textViewMemberName.text = "$platformEmoji - $name"
+                textViewMemberName.visibility = View.VISIBLE
+            } else {
+                textViewMemberName.visibility = View.GONE
+            }
+        }
+
+        // Observar lista de asignaciones
+        viewModel.assignments.observe(this) { assignments ->
+            textViewEmpty.visibility = View.GONE
+            listViewAssignments.visibility = View.VISIBLE
+
+            if (assignments.isEmpty()) {
+                showEmptyState("Sin resultados")
+            } else {
+                val displayList: List<String> = assignments.map { assignment ->
+                    "ID: ${assignment.idAsignacion} | Prod: ${assignment.idProducto}\n" +
+                    "${assignment.fechaInicio} → ${assignment.fechaFin}\n" +
+                    if (assignment.activa) "ACTIVA" else "CANCELADA"
+                }
+                val adapter = ArrayAdapter(
+                    this,
+                    android.R.layout.simple_list_item_1,
+                    displayList
+                )
+                listViewAssignments.adapter = adapter
+            }
+        }
+
+        // Observar mensajes de error/estado
+        viewModel.message.observe(this) { message ->
+            if (message.isNotEmpty()) {
+                showEmptyState(message)
             }
         }
     }
@@ -62,61 +129,8 @@ class MainActivity : AppCompatActivity() {
         // Ocultar teclado
         hideKeyboard()
 
-        // Mostrar progreso
-        buttonSearch.isEnabled = false
-        buttonSearch.text = "..."
-
-        // Buscar en Supabase
-        CoroutineScope(Dispatchers.IO).launch {
-            repository.getAssignmentsByMemberId(memberId)
-                .onSuccess { assignments ->
-                    withContext(Dispatchers.Main) {
-                        // Mostrar nombre del primer resultado (si existe)
-                        if (assignments.isNotEmpty()) {
-                            val first = assignments.first()
-                            val platformEmoji = when (first.platform.uppercase()) {
-                                "ANDROID" -> "📱 Android"
-                                "IOS", "IPHONE" -> "📱 iOS"
-                                else -> "📱 ${first.platform}"
-                            }
-                            textViewMemberName.text = "$platformEmoji - ${first.nombreCompleto}"
-                            textViewMemberName.visibility = View.VISIBLE
-                        } else {
-                            textViewMemberName.visibility = View.GONE
-                        }
-
-                        textViewEmpty.visibility = View.GONE
-                        listViewAssignments.visibility = View.VISIBLE
-
-                        if (assignments.isEmpty()) {
-                            showEmptyState("Sin resultados para ID: $memberId")
-                            textViewMemberName.visibility = View.GONE
-                        } else {
-                            val displayList: List<String> = assignments.map { assignment ->
-                                "ID: ${assignment.idAsignacion} | Prod: ${assignment.idProducto}\n" +
-                                "${assignment.fechaInicio} → ${assignment.fechaFin}\n" +
-                                if (assignment.activa) "ACTIVA" else "CANCELADA"
-                            }
-                            val adapter = ArrayAdapter(
-                                this@MainActivity,
-                                android.R.layout.simple_list_item_1,
-                                displayList
-                            )
-                            listViewAssignments.adapter = adapter
-                        }
-
-                        buttonSearch.isEnabled = true
-                        buttonSearch.text = "Buscar"
-                    }
-                }
-                .onFailure { exception ->
-                    withContext(Dispatchers.Main) {
-                        showEmptyState("Error: ${exception.message}")
-                        buttonSearch.isEnabled = true
-                        buttonSearch.text = "Buscar"
-                    }
-                }
-        }
+        // Delegar al ViewModel
+        viewModel.searchAssignments(memberId)
     }
 
     private fun showEmptyState(message: String) {
