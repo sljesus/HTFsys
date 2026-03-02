@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">HTFsystem</string>
+    <string name="hello_world">Bienvenido a HTFsystem</string>
+    <string name="app_description">Sistema de gestión para administración de membresías y asignaciones HTF</string>
+    <string name="action_button">Iniciar Sistema</string>
+    <string name="initial_status">Sistema listo para operar</string>
+</resources>
