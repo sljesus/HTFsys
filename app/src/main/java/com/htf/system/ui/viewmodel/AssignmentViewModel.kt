@@ -32,6 +32,14 @@ class AssignmentViewModel : ViewModel() {
     private val _memberName = MutableLiveData<String?>()
     val memberName: LiveData<String?> = _memberName
 
+    // Estado de actualización
+    private val _updateSuccess = MutableLiveData<Boolean?>()
+    val updateSuccess: LiveData<Boolean?> = _updateSuccess
+
+    // Estado de eliminación
+    private val _deleteSuccess = MutableLiveData<Boolean?>()
+    val deleteSuccess: LiveData<Boolean?> = _deleteSuccess
+
     /**
      * Buscar asignaciones por ID de miembro
      * Usa viewModelScope para mantener consistencia con MVVM
@@ -69,5 +77,78 @@ class AssignmentViewModel : ViewModel() {
         _memberName.value = null
         _message.value = ""
         _isLoading.value = false
+    }
+
+    /**
+     * Actualizar una asignación
+     */
+    fun updateAssignment(
+        assignmentId: Int,
+        memberId: Int,
+        fechaInicio: String? = null,
+        fechaFin: String? = null,
+        activa: Boolean? = null,
+        cancelada: Boolean? = null
+    ) {
+        _isLoading.value = true
+
+        viewModelScope.launch {
+            repository.updateAssignment(
+                assignmentId = assignmentId,
+                fechaInicio = fechaInicio,
+                fechaFin = fechaFin,
+                activa = activa,
+                cancelada = cancelada
+            )
+                .onSuccess {
+                    _updateSuccess.value = true
+                    _message.value = "Asignación actualizada exitosamente"
+                    _isLoading.value = false
+                    // Recargar las asignaciones
+                    searchAssignments(memberId)
+                }
+                .onFailure { exception ->
+                    _updateSuccess.value = false
+                    _message.value = "Error: ${exception.message}"
+                    _isLoading.value = false
+                }
+        }
+    }
+
+    /**
+     * Limpiar estado de actualización
+     */
+    fun clearUpdateStatus() {
+        _updateSuccess.value = null
+    }
+
+    /**
+     * Eliminar una asignación
+     */
+    fun deleteAssignment(assignmentId: Int, memberId: Int) {
+        _isLoading.value = true
+
+        viewModelScope.launch {
+            repository.deleteAssignment(assignmentId)
+                .onSuccess {
+                    _deleteSuccess.value = true
+                    _message.value = "Asignación eliminada exitosamente"
+                    _isLoading.value = false
+                    // Recargar las asignaciones
+                    searchAssignments(memberId)
+                }
+                .onFailure { exception ->
+                    _deleteSuccess.value = false
+                    _message.value = "Error: ${exception.message}"
+                    _isLoading.value = false
+                }
+        }
+    }
+
+    /**
+     * Limpiar estado de eliminación
+     */
+    fun clearDeleteStatus() {
+        _deleteSuccess.value = null
     }
 }

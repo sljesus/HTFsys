@@ -2,8 +2,7 @@ package com.htf.system.data.remote
 
 import com.google.gson.annotations.SerializedName
 import retrofit2.Response
-import retrofit2.http.GET
-import retrofit2.http.Query
+import retrofit2.http.*
 
 // API Service para Supabase usando Retrofit
 interface SupabaseApiService {
@@ -16,7 +15,28 @@ interface SupabaseApiService {
         @Query("limit") limit: Int = 100,
         @Query("order") order: String = "id_asignacion.desc"
     ): Response<List<AssignmentDetailsResponse>>
+
+    // Actualizar una asignación (fecha_inicio, fecha_fin, activa, cancelada)
+    @PATCH("asignaciones_activas")
+    suspend fun updateAssignment(
+        @Query("id_asignacion") filter: String,
+        @Body updateData: AssignmentUpdateRequest
+    ): Response<Unit>
+
+    // Eliminar una asignación
+    @DELETE("asignaciones_activas")
+    suspend fun deleteAssignment(
+        @Query("id_asignacion") filter: String
+    ): Response<Unit>
 }
+
+// Request para actualizar asignación
+data class AssignmentUpdateRequest(
+    @SerializedName("fecha_inicio") val fechaInicio: String?,
+    @SerializedName("fecha_fin") val fechaFin: String?,
+    @SerializedName("activa") val activa: Boolean?,
+    @SerializedName("cancelada") val cancelada: Boolean?
+)
 
 // Response para la vista con detalles (incluye nombre completo)
 data class AssignmentDetailsResponse(

@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Editar Asignación"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@color/primary_color"
+        android:layout_marginBottom="16dp" />
+
+    <!-- ID Asignación (solo lectura) -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="ID Asignación"
+        android:textSize="12sp"
+        android:textColor="@android:color/darker_gray" />
+
+    <TextView
+        android:id="@+id/textViewIdAsignacion"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="0"
+        android:textSize="16sp"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Producto (solo lectura) -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Producto"
+        android:textSize="12sp"
+        android:textColor="@android:color/darker_gray" />
+
+    <TextView
+        android:id="@+id/textViewProducto"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Producto"
+        android:textSize="16sp"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Fecha Inicio -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Fecha Inicio"
+        android:textSize="12sp"
+        android:textColor="@android:color/darker_gray" />
+
+    <EditText
+        android:id="@+id/editTextFechaInicio"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="YYYY-MM-DD"
+        android:inputType="date"
+        android:padding="12dp"
+        android:background="@android:drawable/edit_text"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Fecha Fin -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Fecha Fin"
+        android:textSize="12sp"
+        android:textColor="@android:color/darker_gray" />
+
+    <EditText
+        android:id="@+id/editTextFechaFin"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="YYYY-MM-DD"
+        android:inputType="date"
+        android:padding="12dp"
+        android:background="@android:drawable/edit_text"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Activa -->
+    <CheckBox
+        android:id="@+id/checkBoxActiva"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Activa"
+        android:textSize="16sp"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Cancelada -->
+    <CheckBox
+        android:id="@+id/checkBoxCancelada"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Cancelada"
+        android:textSize="16sp"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Botones -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="start">
+
+        <Button
+            android:id="@+id/buttonDelete"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Eliminar"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#F44336"
+            android:layout_marginEnd="8dp" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <Button
+            android:id="@+id/buttonCancel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cancelar"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_marginEnd="8dp" />
+
+        <Button
+            android:id="@+id/buttonSave"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Guardar" />
+
+    </LinearLayout>
+
+</LinearLayout>

@@ -1,6 +1,7 @@
 package com.htf.system.data.repository
 
 import android.util.Log
+import com.htf.system.data.remote.AssignmentUpdateRequest
 import com.htf.system.data.remote.SupabaseApiService
 import com.htf.system.data.remote.SupabaseClient
 import kotlinx.coroutines.Dispatchers
@@ -57,6 +58,72 @@ class AssignmentRepository {
             } else {
                 Log.e("HTF_APP", "❌ ERROR HTTP: ${response.code()} - ${response.message()}")
                 Log.e("HTF_APP", "❌ Response body: ${response.errorBody()?.string()}")
+                Result.failure(Exception("Error HTTP: ${response.code()} - ${response.message()}"))
+            }
+
+        } catch (e: Exception) {
+            Log.e("HTF_APP", "❌ ERROR EN SUPABASE: ${e.message}")
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Actualizar una asignación (fecha_inicio, fecha_fin, activa, cancelada)
+     */
+    suspend fun updateAssignment(
+        assignmentId: Int,
+        fechaInicio: String? = null,
+        fechaFin: String? = null,
+        activa: Boolean? = null,
+        cancelada: Boolean? = null
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            Log.d("HTF_APP", "=== ACTUALIZANDO ASIGNACIÓN $assignmentId ===")
+
+            val updateData = AssignmentUpdateRequest(
+                fechaInicio = fechaInicio,
+                fechaFin = fechaFin,
+                activa = activa,
+                cancelada = cancelada
+            )
+
+            val response = apiService.updateAssignment(
+                filter = "eq.$assignmentId",
+                updateData = updateData
+            )
+
+            if (response.isSuccessful) {
+                Log.d("HTF_APP", "✅ ASIGNACIÓN $assignmentId ACTUALIZADA")
+                Result.success(Unit)
+            } else {
+                Log.e("HTF_APP", "❌ ERROR HTTP: ${response.code()} - ${response.message()}")
+                Result.failure(Exception("Error HTTP: ${response.code()} - ${response.message()}"))
+            }
+
+        } catch (e: Exception) {
+            Log.e("HTF_APP", "❌ ERROR EN SUPABASE: ${e.message}")
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Eliminar una asignación
+     */
+    suspend fun deleteAssignment(assignmentId: Int): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            Log.d("HTF_APP", "=== ELIMINANDO ASIGNACIÓN $assignmentId ===")
+
+            val response = apiService.deleteAssignment(
+                filter = "eq.$assignmentId"
+            )
+
+            if (response.isSuccessful) {
+                Log.d("HTF_APP", "✅ ASIGNACIÓN $assignmentId ELIMINADA")
+                Result.success(Unit)
+            } else {
+                Log.e("HTF_APP", "❌ ERROR HTTP: ${response.code()} - ${response.message()}")
                 Result.failure(Exception("Error HTTP: ${response.code()} - ${response.message()}"))
             }
 
