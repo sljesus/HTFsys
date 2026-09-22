@@ -73,6 +73,44 @@
         android:layout_marginTop="8dp"
         android:visibility="gone" />
 
+    <!-- Acciones sobre el miembro encontrado -->
+    <LinearLayout
+        android:id="@+id/layoutMemberActions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp"
+        android:visibility="gone">
+
+        <Button
+            android:id="@+id/buttonResetTodayAccess"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Resetear acceso hoy"
+            android:textSize="12sp"
+            android:layout_marginEnd="4dp" />
+
+        <Button
+            android:id="@+id/buttonPendingPayments"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Pagos pendientes"
+            android:textSize="12sp"
+            android:layout_marginHorizontal="4dp" />
+
+        <Button
+            android:id="@+id/buttonMemberSales"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Ver ventas"
+            android:textSize="12sp"
+            android:layout_marginStart="4dp" />
+
+    </LinearLayout>
+
     <!-- Lista de resultados -->
     <ListView
         android:id="@+id/listViewAssignments"

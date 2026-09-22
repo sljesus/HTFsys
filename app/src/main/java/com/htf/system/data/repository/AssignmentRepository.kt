@@ -6,6 +6,28 @@ import com.htf.system.data.remote.SupabaseApiService
 import com.htf.system.data.remote.SupabaseClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
+
+// Clase de datos para pagos pendientes
+data class PendingPayment(
+    val idVentaDigital: Int,
+    val idProductoDigital: Int,
+    val monto: Double,
+    val fechaCompra: String
+)
+
+// Clase de datos para una venta (cualquier estado)
+data class Sale(
+    val idVentaDigital: Int,
+    val idProductoDigital: Int,
+    val monto: Double,
+    val estado: String,
+    val metodoPago: String,
+    val fechaCompra: String
+)
 
 // Clase de datos para asignaciones
 data class Assignment(
@@ -174,6 +196,162 @@ class AssignmentRepository {
                 Result.failure(Exception("Error HTTP: ${response.code()} - ${response.message()}"))
             }
 
+        } catch (e: Exception) {
+            Log.e("HTF_APP", "❌ ERROR EN SUPABASE: ${e.message}")
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Borra los registros de entrada de HOY de un miembro, para que pueda volver a entrar
+     * (corrige el caso de "días gratis"/errores de asignación que le bloquean el acceso hoy).
+     */
+    suspend fun resetTodayAccess(memberId: Int): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val timeZone = TimeZone.getTimeZone("America/Mexico_City")
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { this.timeZone = timeZone }
+            val hoy = dateFormat.format(Date())
+            val manana = dateFormat.format(Date(Date().time + 24 * 60 * 60 * 1000))
+
+            Log.d("HTF_APP", "=== RESETEANDO ACCESO DE HOY PARA MIEMBRO $memberId ($hoy) ===")
+
+            val response = apiService.deleteTodayEntradas(
+                idMiembroFilter = "eq.$memberId",
+                fechaDesdeFilter = "gte.${hoy}T00:00:00",
+                fechaHastaFilter = "lt.${manana}T00:00:00"
+            )
+
+            if (response.isSuccessful) {
+                Log.d("HTF_APP", "✅ ACCESO DE HOY RESETEADO PARA MIEMBRO $memberId")
+                Result.success(Unit)
+            } else {
+                Log.e("HTF_APP", "❌ ERROR HTTP: ${response.code()} - ${response.message()}")
+                Result.failure(Exception("Error HTTP: ${response.code()} - ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            Log.e("HTF_APP", "❌ ERROR EN SUPABASE: ${e.message}")
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Obtiene los pagos en efectivo pendientes de un miembro
+     */
+    suspend fun getPendingPayments(memberId: Int): Result<List<PendingPayment>> = withContext(Dispatchers.IO) {
+        try {
+            Log.d("HTF_APP", "=== CONSULTANDO PAGOS PENDIENTES PARA MIEMBRO $memberId ===")
+
+            val response = apiService.getPendingPayments(idMiembro = "eq.$memberId")
+
+            if (response.isSuccessful) {
+                val pagos = (response.body() ?: emptyList()).map {
+                    PendingPayment(
+                        idVentaDigital = it.id_venta_digital,
+                        idProductoDigital = it.id_producto_digital,
+                        monto = it.monto,
+                        fechaCompra = it.fecha_compra
+                    )
+                }
+                Log.d("HTF_APP", "✅ ${pagos.size} PAGOS PENDIENTES ENCONTRADOS")
+                Result.success(pagos)
+            } else {
+                Log.e("HTF_APP", "❌ ERROR HTTP: ${response.code()} - ${response.message()}")
+                Result.failure(Exception("Error HTTP: ${response.code()} - ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            Log.e("HTF_APP", "❌ ERROR EN SUPABASE: ${e.message}")
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Borra un pago pendiente: la venta digital Y su notificación POS asociada juntas.
+     * Si solo se borrara la venta, el miembro quedaría con un código de barras viejo
+     * atascado (el chequeo de duplicados de create-cash-payment-pending solo mira si existe
+     * una notificación sin responder, no si la venta detrás sigue existiendo).
+     */
+    suspend fun deletePendingPayment(idVentaDigital: Int): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            Log.d("HTF_APP", "=== BORRANDO PAGO PENDIENTE $idVentaDigital ===")
+
+            val notifResponse = apiService.deleteNotificacionPorVenta(filter = "eq.$idVentaDigital")
+            if (!notifResponse.isSuccessful) {
+                Log.w("HTF_APP", "⚠️ No se pudo borrar la notificación asociada (continuando): ${notifResponse.code()}")
+            }
+
+            val ventaResponse = apiService.deletePendingPayment(filter = "eq.$idVentaDigital")
+
+            if (ventaResponse.isSuccessful) {
+                Log.d("HTF_APP", "✅ PAGO PENDIENTE $idVentaDigital BORRADO")
+                Result.success(Unit)
+            } else {
+                Log.e("HTF_APP", "❌ ERROR HTTP: ${ventaResponse.code()} - ${ventaResponse.message()}")
+                Result.failure(Exception("Error HTTP: ${ventaResponse.code()} - ${ventaResponse.message()}"))
+            }
+        } catch (e: Exception) {
+            Log.e("HTF_APP", "❌ ERROR EN SUPABASE: ${e.message}")
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Obtiene las últimas ventas (cualquier estado) de un miembro, para localizar y corregir
+     * cobros históricos incorrectos (ej. renovación mal cobrada a $600 en vez de $500).
+     */
+    suspend fun getMemberSales(memberId: Int): Result<List<Sale>> = withContext(Dispatchers.IO) {
+        try {
+            Log.d("HTF_APP", "=== CONSULTANDO VENTAS PARA MIEMBRO $memberId ===")
+
+            val response = apiService.getMemberSales(idMiembro = "eq.$memberId")
+
+            if (response.isSuccessful) {
+                val ventas = (response.body() ?: emptyList()).map {
+                    Sale(
+                        idVentaDigital = it.id_venta_digital,
+                        idProductoDigital = it.id_producto_digital,
+                        monto = it.monto,
+                        estado = it.estado,
+                        metodoPago = it.metodo_pago,
+                        fechaCompra = it.fecha_compra
+                    )
+                }
+                Log.d("HTF_APP", "✅ ${ventas.size} VENTAS ENCONTRADAS")
+                Result.success(ventas)
+            } else {
+                Log.e("HTF_APP", "❌ ERROR HTTP: ${response.code()} - ${response.message()}")
+                Result.failure(Exception("Error HTTP: ${response.code()} - ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            Log.e("HTF_APP", "❌ ERROR EN SUPABASE: ${e.message}")
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Corrige el monto de una venta ya existente (ej. $600 → $500 en renovaciones cobradas
+     * de más por versiones viejas de la app — ver hallazgo #19 del registro de bugs).
+     */
+    suspend fun updateSaleAmount(idVentaDigital: Int, newAmount: Double): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            Log.d("HTF_APP", "=== CORRIGIENDO MONTO DE VENTA $idVentaDigital A \$$newAmount ===")
+
+            val response = apiService.updateSaleAmount(
+                filter = "eq.$idVentaDigital",
+                updateData = com.htf.system.data.remote.SaleAmountUpdateRequest(monto = newAmount)
+            )
+
+            if (response.isSuccessful) {
+                Log.d("HTF_APP", "✅ MONTO DE VENTA $idVentaDigital CORREGIDO")
+                Result.success(Unit)
+            } else {
+                Log.e("HTF_APP", "❌ ERROR HTTP: ${response.code()} - ${response.message()}")
+                Result.failure(Exception("Error HTTP: ${response.code()} - ${response.message()}"))
+            }
         } catch (e: Exception) {
             Log.e("HTF_APP", "❌ ERROR EN SUPABASE: ${e.message}")
             e.printStackTrace()

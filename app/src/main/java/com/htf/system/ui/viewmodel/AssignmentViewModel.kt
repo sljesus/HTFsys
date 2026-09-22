@@ -6,6 +6,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.htf.system.data.repository.Assignment
 import com.htf.system.data.repository.AssignmentRepository
+import com.htf.system.data.repository.PendingPayment
+import com.htf.system.data.repository.Sale
 import kotlinx.coroutines.launch
 
 /**
@@ -39,6 +41,26 @@ class AssignmentViewModel : ViewModel() {
     // Estado de eliminación
     private val _deleteSuccess = MutableLiveData<Boolean?>()
     val deleteSuccess: LiveData<Boolean?> = _deleteSuccess
+
+    // Estado de reseteo de acceso de hoy
+    private val _resetAccessSuccess = MutableLiveData<Boolean?>()
+    val resetAccessSuccess: LiveData<Boolean?> = _resetAccessSuccess
+
+    // Pagos pendientes del miembro actual (null = todavía no se consultaron)
+    private val _pendingPayments = MutableLiveData<List<PendingPayment>?>(null)
+    val pendingPayments: LiveData<List<PendingPayment>?> = _pendingPayments
+
+    // Estado de borrado de pago pendiente
+    private val _deletePendingPaymentSuccess = MutableLiveData<Boolean?>()
+    val deletePendingPaymentSuccess: LiveData<Boolean?> = _deletePendingPaymentSuccess
+
+    // Ventas del miembro actual (null = todavía no se consultaron)
+    private val _memberSales = MutableLiveData<List<Sale>?>(null)
+    val memberSales: LiveData<List<Sale>?> = _memberSales
+
+    // Estado de corrección de monto
+    private val _updateSaleAmountSuccess = MutableLiveData<Boolean?>()
+    val updateSaleAmountSuccess: LiveData<Boolean?> = _updateSaleAmountSuccess
 
     /**
      * Buscar asignaciones por ID de miembro
@@ -182,5 +204,124 @@ class AssignmentViewModel : ViewModel() {
      */
     fun clearDeleteStatus() {
         _deleteSuccess.value = null
+    }
+
+    /**
+     * Resetear el acceso de hoy de un miembro (borra sus registros de entrada de hoy)
+     */
+    fun resetTodayAccess(memberId: Int) {
+        _isLoading.value = true
+
+        viewModelScope.launch {
+            repository.resetTodayAccess(memberId)
+                .onSuccess {
+                    _resetAccessSuccess.value = true
+                    _message.value = "Acceso de hoy reseteado"
+                    _isLoading.value = false
+                }
+                .onFailure { exception ->
+                    _resetAccessSuccess.value = false
+                    _message.value = "Error: ${exception.message}"
+                    _isLoading.value = false
+                }
+        }
+    }
+
+    fun clearResetAccessStatus() {
+        _resetAccessSuccess.value = null
+    }
+
+    /**
+     * Cargar los pagos pendientes de un miembro
+     */
+    fun loadPendingPayments(memberId: Int) {
+        _isLoading.value = true
+
+        viewModelScope.launch {
+            repository.getPendingPayments(memberId)
+                .onSuccess { payments ->
+                    _pendingPayments.value = payments
+                    _isLoading.value = false
+                }
+                .onFailure { exception ->
+                    _pendingPayments.value = emptyList()
+                    _message.value = "Error: ${exception.message}"
+                    _isLoading.value = false
+                }
+        }
+    }
+
+    /**
+     * Borrar un pago pendiente específico (venta + notificación asociada)
+     */
+    fun deletePendingPayment(idVentaDigital: Int, memberId: Int) {
+        _isLoading.value = true
+
+        viewModelScope.launch {
+            repository.deletePendingPayment(idVentaDigital)
+                .onSuccess {
+                    _deletePendingPaymentSuccess.value = true
+                    _message.value = "Pago pendiente eliminado"
+                    _isLoading.value = false
+                    // Recargar la lista de pagos pendientes
+                    loadPendingPayments(memberId)
+                }
+                .onFailure { exception ->
+                    _deletePendingPaymentSuccess.value = false
+                    _message.value = "Error: ${exception.message}"
+                    _isLoading.value = false
+                }
+        }
+    }
+
+    fun clearDeletePendingPaymentStatus() {
+        _deletePendingPaymentSuccess.value = null
+    }
+
+    /**
+     * Cargar las ventas (cualquier estado) de un miembro
+     */
+    fun loadMemberSales(memberId: Int) {
+        _isLoading.value = true
+
+        viewModelScope.launch {
+            repository.getMemberSales(memberId)
+                .onSuccess { sales ->
+                    _memberSales.value = sales
+                    _isLoading.value = false
+                }
+                .onFailure { exception ->
+                    _memberSales.value = emptyList()
+                    _message.value = "Error: ${exception.message}"
+                    _isLoading.value = false
+                }
+        }
+    }
+
+    /**
+     * Corregir el monto de una venta (ej. 600 -> 500)
+     */
+    fun updateSaleAmount(idVentaDigital: Int, newAmount: Double, memberId: Int) {
+        _isLoading.value = true
+
+        viewModelScope.launch {
+            repository.updateSaleAmount(idVentaDigital, newAmount)
+                .onSuccess {
+                    _updateSaleAmountSuccess.value = true
+                    _message.value = "Monto corregido"
+                    _isLoading.value = false
+                    // Recargar la lista de ventas
+                    loadMemberSales(memberId)
+                }
+                .onFailure { exception ->
+                    _updateSaleAmountSuccess.value = false
+                    _message.value = "Error: ${exception.message}"
+                    _isLoading.value = false
+                }
+        }
+    }
+
+    fun clearUpdateSaleAmountStatus() {
+        _updateSaleAmountSuccess.value = null
     }
 }

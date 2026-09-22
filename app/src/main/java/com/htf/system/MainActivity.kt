@@ -12,6 +12,7 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.htf.system.data.repository.Assignment
+import com.htf.system.data.repository.PendingPayment
 import com.htf.system.ui.viewmodel.AssignmentViewModel
 import java.util.*
 
@@ -28,6 +29,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var listViewAssignments: ListView
     private lateinit var textViewEmpty: TextView
     private lateinit var textViewMemberName: TextView
+    private lateinit var layoutMemberActions: View
+    private lateinit var buttonResetTodayAccess: Button
+    private lateinit var buttonPendingPayments: Button
+    private lateinit var buttonMemberSales: Button
 
     // ViewModel siguiendo patrón MVVM
     private val viewModel: AssignmentViewModel by viewModels()
@@ -47,6 +52,10 @@ class MainActivity : AppCompatActivity() {
         listViewAssignments = findViewById(R.id.listViewAssignments)
         textViewEmpty = findViewById(R.id.textViewEmpty)
         textViewMemberName = findViewById(R.id.textViewMemberName)
+        layoutMemberActions = findViewById(R.id.layoutMemberActions)
+        buttonResetTodayAccess = findViewById(R.id.buttonResetTodayAccess)
+        buttonPendingPayments = findViewById(R.id.buttonPendingPayments)
+        buttonMemberSales = findViewById(R.id.buttonMemberSales)
 
         // Estado inicial
         showEmptyState("Ingrese ID o nombre del miembro")
@@ -88,6 +97,121 @@ class MainActivity : AppCompatActivity() {
                 false
             }
         }
+
+        // Botón de resetear acceso de hoy
+        buttonResetTodayAccess.setOnClickListener {
+            confirmResetTodayAccess()
+        }
+
+        // Botón de pagos pendientes
+        buttonPendingPayments.setOnClickListener {
+            viewModel.loadPendingPayments(currentMemberId)
+        }
+
+        // Botón de ver ventas (para corregir montos históricos, ej. 600 -> 500)
+        buttonMemberSales.setOnClickListener {
+            viewModel.loadMemberSales(currentMemberId)
+        }
+    }
+
+    /**
+     * Diálogo de confirmación para resetear el acceso de hoy
+     */
+    private fun confirmResetTodayAccess() {
+        AlertDialog.Builder(this)
+            .setTitle("Resetear acceso de hoy")
+            .setMessage("¿Seguro que querés borrar los registros de entrada de HOY de este miembro, para que pueda volver a entrar?")
+            .setPositiveButton("Resetear") { _, _ ->
+                viewModel.resetTodayAccess(currentMemberId)
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    /**
+     * Muestra el diálogo con la lista de pagos pendientes del miembro actual
+     */
+    private fun showPendingPaymentsDialog(payments: List<PendingPayment>) {
+        if (payments.isEmpty()) {
+            Toast.makeText(this, "Sin pagos pendientes para este miembro", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val items = payments.map { p ->
+            "Venta #${p.idVentaDigital} - Producto ${p.idProductoDigital} - \$${p.monto} - ${p.fechaCompra}"
+        }.toTypedArray()
+
+        AlertDialog.Builder(this)
+            .setTitle("Pagos pendientes (${payments.size})")
+            .setItems(items) { _, position ->
+                val pago = payments[position]
+                AlertDialog.Builder(this)
+                    .setTitle("Confirmar eliminación")
+                    .setMessage("¿Borrar el pago pendiente #${pago.idVentaDigital} por \$${pago.monto}?\n\nEsto borra la venta Y su código de barras asociado.")
+                    .setPositiveButton("Eliminar") { _, _ ->
+                        viewModel.deletePendingPayment(pago.idVentaDigital, currentMemberId)
+                    }
+                    .setNegativeButton("Cancelar", null)
+                    .show()
+            }
+            .setNegativeButton("Cerrar", null)
+            .show()
+    }
+
+    /**
+     * Muestra el diálogo con las ventas del miembro actual (cualquier estado), con opción de
+     * corregir el monto — pensado para el caso de renovaciones cobradas de más ($600 en vez
+     * de $500 por inscripción renovada sin necesitarlo, versiones viejas de la app).
+     */
+    private fun showMemberSalesDialog(sales: List<com.htf.system.data.repository.Sale>) {
+        if (sales.isEmpty()) {
+            Toast.makeText(this, "Sin ventas para este miembro", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val items = sales.map { s ->
+            "Venta #${s.idVentaDigital} - Producto ${s.idProductoDigital} - \$${s.monto} - ${s.estado} - ${s.metodoPago} - ${s.fechaCompra}"
+        }.toTypedArray()
+
+        AlertDialog.Builder(this)
+            .setTitle("Ventas (${sales.size})")
+            .setItems(items) { _, position ->
+                showEditSaleAmountDialog(sales[position])
+            }
+            .setNegativeButton("Cerrar", null)
+            .show()
+    }
+
+    /**
+     * Diálogo para corregir el monto de una venta específica
+     */
+    private fun showEditSaleAmountDialog(sale: com.htf.system.data.repository.Sale) {
+        val input = EditText(this).apply {
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+            setText(sale.monto.toString())
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Corregir monto — Venta #${sale.idVentaDigital}")
+            .setMessage("Producto ${sale.idProductoDigital} - ${sale.estado} - ${sale.fechaCompra}\n\nMonto actual: \$${sale.monto}")
+            .setView(input)
+            .setPositiveButton("Guardar") { _, _ ->
+                val nuevoMonto = input.text.toString().toDoubleOrNull()
+                if (nuevoMonto == null) {
+                    Toast.makeText(this, "Monto inválido", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                AlertDialog.Builder(this)
+                    .setTitle("Confirmar corrección")
+                    .setMessage("¿Cambiar el monto de la venta #${sale.idVentaDigital} de \$${sale.monto} a \$$nuevoMonto?")
+                    .setPositiveButton("Confirmar") { _, _ ->
+                        viewModel.updateSaleAmount(sale.idVentaDigital, nuevoMonto, currentMemberId)
+                    }
+                    .setNegativeButton("Cancelar", null)
+                    .show()
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
     }
 
     private fun observeViewModel() {
@@ -109,8 +233,10 @@ class MainActivity : AppCompatActivity() {
                 }
                 textViewMemberName.text = "$platformEmoji - $name"
                 textViewMemberName.visibility = View.VISIBLE
+                layoutMemberActions.visibility = View.VISIBLE
             } else {
                 textViewMemberName.visibility = View.GONE
+                layoutMemberActions.visibility = View.GONE
             }
         }
 
@@ -170,6 +296,65 @@ class MainActivity : AppCompatActivity() {
                 null -> { /* No hacer nada */ }
             }
         }
+
+        // Observar resultado de reseteo de acceso de hoy
+        viewModel.resetAccessSuccess.observe(this) { success ->
+            when (success) {
+                true -> {
+                    Toast.makeText(this, "Acceso de hoy reseteado", Toast.LENGTH_SHORT).show()
+                    viewModel.clearResetAccessStatus()
+                }
+                false -> {
+                    Toast.makeText(this, viewModel.message.value ?: "Error al resetear acceso", Toast.LENGTH_LONG).show()
+                    viewModel.clearResetAccessStatus()
+                }
+                null -> { /* No hacer nada */ }
+            }
+        }
+
+        // Observar pagos pendientes cargados (null = todavía no se consultaron, no mostrar nada)
+        viewModel.pendingPayments.observe(this) { payments ->
+            if (payments != null) {
+                showPendingPaymentsDialog(payments)
+            }
+        }
+
+        // Observar resultado de borrado de pago pendiente
+        viewModel.deletePendingPaymentSuccess.observe(this) { success ->
+            when (success) {
+                true -> {
+                    Toast.makeText(this, "Pago pendiente eliminado", Toast.LENGTH_SHORT).show()
+                    viewModel.clearDeletePendingPaymentStatus()
+                }
+                false -> {
+                    Toast.makeText(this, viewModel.message.value ?: "Error al eliminar pago", Toast.LENGTH_LONG).show()
+                    viewModel.clearDeletePendingPaymentStatus()
+                }
+                null -> { /* No hacer nada */ }
+            }
+        }
+
+        // Observar ventas del miembro cargadas (null = todavía no se consultaron)
+        viewModel.memberSales.observe(this) { sales ->
+            if (sales != null) {
+                showMemberSalesDialog(sales)
+            }
+        }
+
+        // Observar resultado de corrección de monto
+        viewModel.updateSaleAmountSuccess.observe(this) { success ->
+            when (success) {
+                true -> {
+                    Toast.makeText(this, "Monto corregido", Toast.LENGTH_SHORT).show()
+                    viewModel.clearUpdateSaleAmountStatus()
+                }
+                false -> {
+                    Toast.makeText(this, viewModel.message.value ?: "Error al corregir monto", Toast.LENGTH_LONG).show()
+                    viewModel.clearUpdateSaleAmountStatus()
+                }
+                null -> { /* No hacer nada */ }
+            }
+        }
     }
 
     private fun searchMemberAssignments() {
@@ -216,6 +401,7 @@ class MainActivity : AppCompatActivity() {
         textViewEmpty.visibility = View.VISIBLE
         listViewAssignments.visibility = View.GONE
         textViewMemberName.visibility = View.GONE
+        layoutMemberActions.visibility = View.GONE
     }
 
     // Ocultar teclado virtual
@@ -240,6 +426,7 @@ class MainActivity : AppCompatActivity() {
         )
 
         // Referencias a los campos
+        val textViewMiembro = dialog.findViewById<TextView>(R.id.textViewMiembroDialog)
         val textViewId = dialog.findViewById<TextView>(R.id.textViewIdAsignacion)
         val textViewProducto = dialog.findViewById<TextView>(R.id.textViewProducto)
         val editTextFechaInicio = dialog.findViewById<EditText>(R.id.editTextFechaInicio)
@@ -251,6 +438,7 @@ class MainActivity : AppCompatActivity() {
         val buttonSave = dialog.findViewById<Button>(R.id.buttonSave)
 
         // Llenar datos actuales
+        textViewMiembro.text = "ID ${assignment.idMiembro} — ${assignment.nombreCompleto}"
         textViewId.text = assignment.idAsignacion
         textViewProducto.text = assignment.nombreProducto
         editTextFechaInicio.setText(assignment.fechaInicio)

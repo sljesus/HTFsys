@@ -12,6 +12,18 @@
         android:textSize="20sp"
         android:textStyle="bold"
         android:textColor="@color/primary_color"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Miembro al que pertenece esta asignación (para no editar a la persona equivocada) -->
+    <TextView
+        android:id="@+id/textViewMiembroDialog"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Miembro"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:padding="10dp"
+        android:background="#FFF3E0"
         android:layout_marginBottom="16dp" />
 
     <!-- ID Asignación (solo lectura) -->

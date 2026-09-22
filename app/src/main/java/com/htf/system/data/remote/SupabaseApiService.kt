@@ -37,7 +37,78 @@ interface SupabaseApiService {
     suspend fun deleteAssignment(
         @Query("id_asignacion") filter: String
     ): Response<Unit>
+
+    // Borrar los registros de entrada de HOY de un miembro (para que pueda volver a entrar)
+    @DELETE("registro_entradas")
+    suspend fun deleteTodayEntradas(
+        @Query("id_miembro") idMiembroFilter: String,
+        @Query("fecha_entrada") fechaDesdeFilter: String,
+        @Query("fecha_entrada") fechaHastaFilter: String
+    ): Response<Unit>
+
+    // Listar pagos en efectivo pendientes de un miembro
+    @GET("ventas_digitales")
+    suspend fun getPendingPayments(
+        @Query("id_miembro") idMiembro: String,
+        @Query("estado") estado: String = "eq.pendiente_pago",
+        @Query("select") select: String = "id_venta_digital,id_miembro,id_producto_digital,monto,fecha_compra",
+        @Query("order") order: String = "fecha_compra.desc"
+    ): Response<List<PendingPaymentResponse>>
+
+    // Borrar una venta digital pendiente
+    @DELETE("ventas_digitales")
+    suspend fun deletePendingPayment(
+        @Query("id_venta_digital") filter: String
+    ): Response<Unit>
+
+    // Borrar la notificación POS asociada (para que el miembro no quede con un código viejo
+    // atascado — ver hallazgo #20 del registro de bugs)
+    @DELETE("notificaciones_pos")
+    suspend fun deleteNotificacionPorVenta(
+        @Query("id_venta_digital") filter: String
+    ): Response<Unit>
+
+    // Listar ventas (cualquier estado) de un miembro, más recientes primero — para localizar
+    // y corregir cobros históricos incorrectos (ej. $600 en vez de $500)
+    @GET("ventas_digitales")
+    suspend fun getMemberSales(
+        @Query("id_miembro") idMiembro: String,
+        @Query("select") select: String = "id_venta_digital,id_miembro,id_producto_digital,monto,estado,metodo_pago,fecha_compra",
+        @Query("order") order: String = "fecha_compra.desc",
+        @Query("limit") limit: Int = 30
+    ): Response<List<SaleResponse>>
+
+    // Corregir el monto de una venta ya existente
+    @PATCH("ventas_digitales")
+    suspend fun updateSaleAmount(
+        @Query("id_venta_digital") filter: String,
+        @Body updateData: SaleAmountUpdateRequest
+    ): Response<Unit>
 }
+
+// Response para una venta (cualquier estado)
+data class SaleResponse(
+    @SerializedName("id_venta_digital") val id_venta_digital: Int,
+    @SerializedName("id_miembro") val id_miembro: Int,
+    @SerializedName("id_producto_digital") val id_producto_digital: Int,
+    @SerializedName("monto") val monto: Double,
+    @SerializedName("estado") val estado: String,
+    @SerializedName("metodo_pago") val metodo_pago: String,
+    @SerializedName("fecha_compra") val fecha_compra: String
+)
+
+data class SaleAmountUpdateRequest(
+    @SerializedName("monto") val monto: Double
+)
+
+// Response para un pago pendiente
+data class PendingPaymentResponse(
+    @SerializedName("id_venta_digital") val id_venta_digital: Int,
+    @SerializedName("id_miembro") val id_miembro: Int,
+    @SerializedName("id_producto_digital") val id_producto_digital: Int,
+    @SerializedName("monto") val monto: Double,
+    @SerializedName("fecha_compra") val fecha_compra: String
+)
 
 // Request para actualizar asignación
 data class AssignmentUpdateRequest(
